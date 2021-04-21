@@ -1,4 +1,4 @@
-package com.example.myapplication;
+package com.example.annealing;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -6,50 +6,101 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.google.android.material.checkbox.MaterialCheckBox;
-
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
-
-    private Collection<Integer> Cities;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        float Prob = new Random().nextFloat();
-        double X = (new Random().nextDouble()*10.24)-5.12;
-        double fX = 10+(Math.pow(X,2)-(10*Math.cos(2*180*X)));
-        double X1 = X;
-        for(int i = 0 ; i < 1000 ; i++){
+        double T0 = 20;
+        int k = 0;
+        double fT = T0 -(0.2*k);
 
-            for(int j = 2 ; j < 10 ; j++){
-                float R = new Random().nextFloat();
-                if(R<Prob){
-                    X1 = (new Random().nextDouble()*10.24)-5.12;
+        ArrayList<Integer> cities = new ArrayList<>();
+        cities.add(1);
+        cities.add(2);
+        cities.add(3);
+        cities.add(4);
+        cities.add(5);
+        cities.add(6);
+        cities.add(7);
+        cities.add(8);
+
+        Graph graph = new Graph();
+        graph.addCity(1,2,4);
+        graph.addCity(1,3,10);
+        graph.addCity(1,8,5);
+
+
+        graph.addCity(2,3,11);
+        graph.addCity(2,4,15);
+
+
+        graph.addCity(3,4,13);
+        graph.addCity(3,5,3);
+        graph.addCity(3,8,11);
+
+        graph.addCity(4,6,5);
+        graph.addCity(4,5,6);
+
+
+        graph.addCity(5,6,2);
+        graph.addCity(5,7,5);
+
+        graph.addCity(6,7,8);
+
+
+        graph.addCity(7,8,7);
+
+        LinkedList<Integer> X0 = new LinkedList<>();
+        int dist0 = 0;
+        while(!graph.getRoute().containsAll(cities)){
+            X0.push(graph.getCurrCity());
+            dist0 += graph.Next(graph.getCurrCity());
+
+        }
+        graph.startOver();
+        for(int i = 0 ;  i <100; i++){
+            LinkedList<Integer> X1 = new LinkedList<>();
+            int dist1 = 0;
+            while(!graph.getRoute().containsAll(cities)){
+                X1.push(graph.getCurrCity());
+                dist1+=graph.Next(graph.getCurrCity());
+            }
+            graph.startOver();
+            if(dist0>dist1){
+                X0.clear();
+                for(int j = 0 ; j < X1.size() ; j++){
+                    X0.push(X1.get(j));
+                }
+            }else{
+                double r = Math.random();
+                if(r<Math.exp((dist0-dist1)/T0)){
+                    X0.clear();
+                    for(int j = 0 ; j < X1.size() ; j++){
+                        X0.push(X1.get(j));
+                    }
                 }
             }
-            double fX1 = 10+(Math.pow(X1,2)-(10*Math.cos(2*180*X1)));
-            if(fX1 > fX){
-                X = X1;
-            }
+            T0 = fT;
+            k++;
+            fT = T0 -(0.2*k);
         }
-        Log.d("PEACE",""+X);
-
+        for(int l = 0 ; l < X0.size();l++){
+            Log.d("ROUTEEE",X0.get(l).toString());
+        }
     }
     public class Graph{
-        private HashMap<Integer,List<Integer[]>> Map;
+        private HashMap<Integer, List<Integer[]>> Map;
 
         private Integer Cursor;
         private int deletePos;
-        private HashMap<Integer,List<Integer[]>>  Saved;
+
         private LinkedList<Integer> Route;
         private boolean dirty;
         private LinkedList<Integer> comingFrom;
@@ -59,7 +110,6 @@ public class MainActivity extends AppCompatActivity {
             Map = new HashMap<>();
             Cursor = 1;
             deletePos = 1;
-            Saved = new HashMap<>();
             Route = new LinkedList<>();
             Route.add(0,1);
             dirty = false;
@@ -97,18 +147,14 @@ public class MainActivity extends AppCompatActivity {
 
             LinkedList<Integer[]> listOfDests = (LinkedList<Integer[]>) Map.get(Src);
             int Indx = 0;
-            int Steepest = 0;
+
 
             for(int i = 0 ; i < listOfDests.size();i++){
 
                 if(comingFrom.contains(listOfDests.get(i)[0])&& !comingFrom.containsAll(listOfDests)){
                     continue;
                 }
-                if(Steepest==0 || Steepest > listOfDests.get(i)[1]){
-                    Log.d("MOVING","FROM:"+Src+" TO:" +listOfDests.get(i)[0]+" Dist: "+listOfDests.get(i)[1]);
-                    Steepest = listOfDests.get(i)[1];
-                    Indx = i;
-                }
+                Indx = i;
             }
 
             Integer[] mapOfDestDist = listOfDests.get(Indx);
@@ -116,12 +162,7 @@ public class MainActivity extends AppCompatActivity {
 
             Route.add(listOfDests.get(Indx)[0]);
 
-            if(!dirty){
-                for(int i = 0 ; i < Map.size();i++){
-                    Saved.put(Src,Map.get(Src));
 
-                }
-            }
 
 
             Cursor = listOfDests.get(Indx)[0];
@@ -164,13 +205,9 @@ public class MainActivity extends AppCompatActivity {
             Cursor = 1;
             dirty = false;
             comingFrom.clear();
-            for(int i = 0 ; i < Saved.size();i++){
-                Map.put((Integer) Saved.keySet().toArray()[i],Saved.get(Saved.keySet().toArray()[i]));
-            }
+
         }
 
 
     }
-
-
 }
